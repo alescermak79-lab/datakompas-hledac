@@ -120,12 +120,18 @@
   }
 
   /* ---------- rendering ---------- */
+  var ICONS = {
+    reality: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    auto: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M5 16l1.5-5.5A2 2 0 0 1 8.4 9h7.2a2 2 0 0 1 1.9 1.5L19 16"/><path d="M3 16h18v3H3z"/><circle cx="7" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'
+  };
+  function ico(ok) { return ICONS[ok] || ""; }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
   function badge(c) { return '<span class="badge b-' + c + '" title="' + esc(CATS[c].hint) + '">' + CATS[c].name + "</span>"; }
 
   function bars(list, max) {
     return '<ul class="bars">' + list.map(function (x) {
       var pc = parseFloat(String(x[1]).replace(",", ".")) || 0;
-      return '<li style="--w:' + Math.min(100, pc) + '%"><span>' + esc(x[0]) + '</span><span class="pc">' + esc(x[1]) + '</span><span class="x">' + esc(x[2] || "") + "</span></li>";
+      return '<li><span>' + esc(x[0]) + '</span><span class="pc">' + esc(x[1]) + '</span><span class="x" title="Násobek oproti všem uživatelům Seznamu">' + esc(x[2] || "") + '</span><span class="bt"><i style="width:' + Math.min(100, pc) + '%"></i></span></li>';
     }).join("") + "</ul>";
   }
 
@@ -134,7 +140,7 @@
     var toks = opt.toks, hits = opt.hits;
     var url = DK + s.s + "/";
     var cls = MEMBER[s.s].map(function (cl) {
-      return '<a class="badge b-cl" href="#/obor/' + cl.obor + "/" + cl.id + '">' + OBORY[cl.obor].icon + " " + esc(cl.name) + "</a>";
+      return '<a class="badge b-cl" href="#/obor/' + cl.obor + "/" + cl.id + '">' + esc(OBORY[cl.obor].name) + " · " + esc(cl.name) + "</a>";
     }).join("");
     var hitHtml = "";
     if (hits && (hits.i.length || hits.w.length)) {
@@ -144,21 +150,23 @@
       hitHtml = '<div class="hit">Shoda v detailu: ' + parts.join(" &nbsp;|&nbsp; ") + "</div>";
     }
     var hasDt = s.i || s.w;
+    var pc = parseFloat(String(s.p).replace(",", ".")) || 0;
     return '<article class="seg" data-s="' + s.s + '">' +
-      '<div class="seg-top"><div>' +
+      '<div class="kicker">' + badge(s.c) + "</div>" +
       '<h3><a href="' + url + '" target="_blank" rel="noopener">' + mark(s.n, toks) + "</a></h3>" +
+      '<span class="label">Velikost cílovky</span>' +
+      '<div class="bar"><span class="track"><span class="fill" style="width:' + Math.min(100, pc * 2.5) + '%"></span></span><span class="val">' + esc(s.p) + " %</span></div>" +
+      '<span class="foot">≈ ' + esc(s.u) + " uživatelů</span>" +
       '<p class="desc">' + mark(s.d, toks) + "</p>" +
-      "</div>" +
-      '<div class="size"><b>' + esc(s.u) + '</b><span>' + esc(s.p) + " % uživatelů</span></div></div>" +
       hitHtml +
-      '<div class="meta">' + badge(s.c) + cls + "</div>" +
+      (cls ? '<div class="meta">' + cls + "</div>" : "") +
       '<div class="seg-actions">' +
       '<a class="go" href="' + url + '" target="_blank" rel="noopener">Detail na Datakompasu ↗</a>' +
-      (hasDt ? '<span class="muted">·</span><button class="more" type="button" aria-expanded="false">Top zájmy a weby ▾</button>' : "") +
+      (hasDt ? '<button class="more" type="button" aria-expanded="false">Top zájmy a weby ▾</button>' : "") +
       "</div>" +
       (hasDt ? '<div class="dt">' +
-        (s.i ? "<div><h4>Co cílovku zajímá</h4>" + bars(s.i) + "</div>" : "") +
-        (s.w ? "<div><h4>Kde tráví čas (weby Seznamu)</h4>" + bars(s.w) + "</div>" : "") +
+        (s.i ? '<div><h4 class="label">Co cílovku zajímá</h4>' + bars(s.i) + "</div>" : "") +
+        (s.w ? '<div><h4 class="label">Kde tráví čas na webech Seznamu</h4>' + bars(s.w) + "</div>" : "") +
         "</div>" : "") +
       "</article>";
   }
@@ -180,10 +188,10 @@
     var html = "";
     if (r.cls.length) {
       html += '<div class="clhits">' + r.cls.map(function (cl) {
-        return '<a class="clhit" href="#/obor/' + cl.obor + "/" + cl.id + '">' + OBORY[cl.obor].icon + " " + esc(cl.name) + " <small>cluster · " + cl.segments.length + " segmentů</small></a>";
+        return '<a class="clhit" href="#/obor/' + cl.obor + "/" + cl.id + '">' + ico(cl.obor) + esc(cl.name) + " <small>cluster " + esc(OBORY[cl.obor].name) + " · " + cl.segments.length + " segmentů</small></a>";
       }).join("") + "</div>";
     }
-    html += '<div class="toolbar"><div class="chips" style="margin:0">' +
+    html += '<div class="toolbar"><div class="seg-tabs" role="group" aria-label="Typ segmentu">' +
       ["all", "zamer", "udalost", "profil"].map(function (c) {
         return '<button class="chip' + (state.cat === c ? " on" : "") + '" data-cat="' + c + '">' + (c === "all" ? "Vše" : CATS[c].name) + '<span class="n">' + counts[c] + "</span></button>";
       }).join("") + "</div>" +
@@ -198,32 +206,74 @@
     document.getElementById("sort").onchange = function (e) { state.sort = e.target.value; viewSearch(q); };
   }
 
+  function guideHtml() {
+    var hidden = ls("dk-guide") === "0";
+    return '<section class="guide" id="guide"' + (hidden ? " hidden" : "") + '>' +
+      '<div class="guide-h"><h2>Jak na to za 30 vteřin</h2><button class="guide-x" id="guide-x" type="button">Skrýt návod ✕</button></div>' +
+      '<ol class="steps">' +
+      '<li><b>Napište, co klient prodává</b><p>Do pole nahoře zadejte produkt, službu nebo web: <code>hypotéka</code>, <code>SUV</code>, <code>novostavba</code>, <code>Sauto.cz</code>. Hledá se i v zájmech a webech každé cílovky, diakritika nevadí.</p></li>' +
+      '<li><b>Vyberte nejteplejší segmenty</b><p>Přepněte na <code>Nákupní záměr</code> pro lidi, kteří nakupují právě teď, nebo seřaďte podle velikosti. „Top zájmy a weby“ ukáže, proč segment sedí.</p></li>' +
+      '<li><b>Prokliknutím otevřete Datakompas</b><p>Tlačítko „Detail na Datakompasu“ vede na demografii a podrobnosti. Hotové sady pro reality a auto najdete v oborových clusterech, i s tlačítkem „Kopírovat seznam“ do nabídky.</p></li>' +
+      "</ol>" +
+      '<div class="legend"><span>' + badge("zamer") + " aktivně řeší nákup teď</span><span>" + badge("udalost") + " prochází změnou v životě</span><span>" + badge("profil") + " dlouhodobě je to zajímá</span></div>" +
+      "</section>";
+  }
+
+  function drawNet(cv) {
+    if (!cv || !cv.getContext) return;
+    var r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    cv.width = w * r; cv.height = h * r;
+    var c = cv.getContext("2d"); c.scale(r, r);
+    var seed = 7; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    var pts = []; for (var i = 0; i < 46; i++) pts.push([rnd() * w, rnd() * h, rnd()]);
+    var cx = w * 0.62, cy = h * 0.42;
+    pts.forEach(function (p, i) {
+      pts.forEach(function (q, j) {
+        if (j <= i) return;
+        var d = Math.hypot(p[0] - q[0], p[1] - q[1]);
+        if (d < 120) { c.strokeStyle = "rgba(255,40,40," + (0.22 * (1 - d / 120)).toFixed(3) + ")"; c.lineWidth = 1; c.beginPath(); c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); c.stroke(); }
+      });
+    });
+    pts.forEach(function (p) {
+      var near = 1 - Math.min(1, Math.hypot(p[0] - cx, p[1] - cy) / (w * 0.6));
+      c.fillStyle = "rgba(255,40,40," + (0.25 + near * 0.6).toFixed(2) + ")";
+      c.beginPath(); c.arc(p[0], p[1], 1.5 + p[2] * 2.5, 0, Math.PI * 2); c.fill();
+    });
+  }
+
   function viewHome() {
     setNav("home");
-    var withDt = SEGS.filter(function (s) { return s.i; }).length;
     var cnt = { profil: 0, udalost: 0, zamer: 0 };
     SEGS.forEach(function (s) { cnt[s.c]++; });
     var quick = ["hypotéka", "novostavba", "pronájem", "rekonstrukce", "fotovoltaika", "ojeté auto", "SUV", "elektromobil", "pneumatiky", "leasing", "Sreality.cz", "Sauto.cz"];
-    var html = '<h1>Najděte správný segment za pár vteřin</h1>' +
-      '<p class="lead">Napište, co klient prodává nebo koho chce oslovit. Hledáme v názvech, popisech, top zájmech i webech všech ' + SEGS.length + ' segmentů Datakompasu – proklikem pak otevřete detail přímo na datakompas.cz.</p>' +
+    var html = '<section class="hero"><canvas id="net" aria-hidden="true"></canvas>' +
+      "<h1>Najděte správný <mark>segment</mark><br>za pár vteřin</h1>" +
+      '<p class="lead">Fulltext nad všemi ' + SEGS.length + " cílovkami Datakompasu. Napište, co klient prodává, a proklikem otevřete detail přímo na datakompas.cz.</p>" +
       '<div class="chips">' + quick.map(function (w) { return '<a class="chip" href="#/hledat?q=' + encodeURIComponent(w) + '">' + esc(w) + "</a>"; }).join("") + "</div>" +
-      '<div class="stats">' +
-      '<div class="stat"><b>' + SEGS.length + '</b><span>segmentů celkem</span></div>' +
-      '<div class="stat"><b>' + cnt.zamer + '</b><span>nákupních záměrů</span></div>' +
-      '<div class="stat"><b>' + cnt.udalost + '</b><span>životních událostí</span></div>' +
-      '<div class="stat"><b>' + cnt.profil + '</b><span>dlouhodobých profilů</span></div>' +
-      "</div>" +
+      '<div class="nums">' +
+      "<div><b>" + SEGS.length + "</b><span>segmentů celkem</span></div>" +
+      "<div><b>" + cnt.zamer + "</b><span>nákupních záměrů</span></div>" +
+      "<div><b>" + cnt.udalost + "</b><span>životních událostí</span></div>" +
+      "<div><b>" + cnt.profil + "</b><span>dlouhodobých profilů</span></div>" +
+      "</div></section>" +
+      guideHtml() +
       "<h2>Oborové clustery</h2>" +
+      '<p class="sub">Předpřipravené sady segmentů pro realitní a automobilový segment, včetně tipu, komu je nabídnout.</p>' +
       '<div class="obory">' + Object.keys(OBORY).map(function (ok) {
         var o = OBORY[ok];
-        return '<section class="obor"><div class="obor-h"><h3>' + o.icon + " " + esc(o.name) + '</h3><a href="#/obor/' + ok + '">Otevřít →</a></div>' +
+        return '<section class="obor"><div class="obor-h"><h3>' + ico(ok) + esc(o.name) + '</h3><a class="btn white" href="#/obor/' + ok + '">Otevřít</a></div>' +
           "<p>" + esc(o.lead) + "</p>" +
           '<div class="cl-links">' + o.clusters.map(function (cl) { return '<a href="#/obor/' + ok + "/" + cl.id + '">' + esc(cl.name) + "</a>"; }).join("") + "</div></section>";
       }).join("") + "</div>" +
       "<h2>Největší nákupní záměry</h2>" +
-      '<div class="list">' + SEGS.filter(function (s) { return s.c === "zamer"; }).slice(0, 5).map(function (s) { return segCard(s); }).join("") + "</div>" +
-      '<p class="muted" style="margin-top:14px"><a href="#/vse">Zobrazit všech ' + SEGS.length + " segmentů →</a></p>";
+      '<p class="sub">Zachycují uživatele ve chvíli, kdy aktivně řeší konkrétní potřebu a chystají se nakoupit.</p>' +
+      '<div class="list">' + SEGS.filter(function (s) { return s.c === "zamer"; }).slice(0, 6).map(function (s) { return segCard(s); }).join("") + "</div>" +
+      '<div class="more-link"><a class="btn" href="#/vse">Zobrazit všech ' + SEGS.length + " segmentů ▾</a></div>";
     app.innerHTML = html;
+    drawNet(document.getElementById("net"));
+    var gx = document.getElementById("guide-x");
+    if (gx) gx.onclick = function () { document.getElementById("guide").hidden = true; ls("dk-guide", "0"); toast("Návod je kdykoli pod tlačítkem Jak hledat"); };
   }
 
   function viewObor(ok) {
@@ -231,11 +281,11 @@
     if (!o) return viewNotFound();
     setNav(ok);
     var html = '<div class="crumbs"><a href="#/">Hledat</a> › ' + esc(o.name) + "</div>" +
-      "<h1>" + o.icon + " " + esc(o.name) + "</h1>" +
+      "<h1>" + esc(o.name) + "</h1>" +
       '<p class="lead">' + esc(o.lead) + " Vyberte cluster a projděte segmenty seřazené podle velikosti.</p>" +
       '<div class="cgrid">' + o.clusters.map(function (cl) {
         var segs = cl.segments.map(bySlug).sort(function (a, b) { return b.un - a.un; });
-        return '<a class="ccard" href="#/obor/' + ok + "/" + cl.id + '"><span class="cnt">' + segs.length + " segmentů</span>" +
+        return '<a class="ccard" href="#/obor/' + ok + "/" + cl.id + '"><span class="label">' + segs.length + " segmentů</span>" +
           "<h3>" + esc(cl.name) + "</h3><p>" + esc(cl.note) + "</p>" +
           '<ul class="top3">' + segs.slice(0, 3).map(function (s) { return "<li><span>" + esc(s.n) + "</span><span>" + esc(s.u) + "</span></li>"; }).join("") + "</ul>" +
           '<div class="who"><b>Komu nabídnout:</b> ' + esc(cl.clients) + "</div></a>";
@@ -253,12 +303,12 @@
       return state.clSort === "size" ? b.un - a.un : (order[a.c] - order[b.c]) || (b.un - a.un);
     });
     var html = '<div class="crumbs"><a href="#/">Hledat</a> › <a href="#/obor/' + ok + '">' + esc(o.name) + "</a> › " + esc(cl.name) + "</div>" +
-      '<div class="clhead"><h1>' + o.icon + " " + esc(cl.name) + '</h1><p class="lead" style="margin:0">' + esc(cl.note) + '</p><p class="who"><b>Komu nabídnout:</b> ' + esc(cl.clients) + "</p></div>" +
+      '<div class="clhead"><span class="label">Cluster · ' + esc(o.name) + '</span><h1>' + ico(ok) + esc(cl.name) + '</h1><p class="lead" style="margin:0">' + esc(cl.note) + '</p><p class="who"><b>Komu nabídnout:</b> ' + esc(cl.clients) + "</p></div>" +
       '<div class="toolbar"><p class="resinfo">' + segs.length + ' segmentů · seřazeno ' + (state.clSort === "size" ? "podle velikosti" : "od nákupních záměrů po profily") + "</p>" +
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><select class="btn" id="clsort" aria-label="Řazení"><option value="type">Záměr → Událost → Profil</option><option value="size"' + (state.clSort === "size" ? " selected" : "") + '>Podle velikosti</option></select>' +
-      '<button class="btn" id="copy" type="button">Kopírovat seznam</button></div></div>' +
+      '<button class="btn white" id="copy" type="button">Kopírovat seznam</button></div></div>' +
       '<div class="list">' + segs.map(function (s) { return segCard(s); }).join("") + "</div>" +
-      "<h2>Další clustery v oboru " + esc(o.name) + "</h2>" +
+      "<h2>Další clustery: " + esc(o.name) + "</h2>" +
       '<div class="cl-links">' + o.clusters.filter(function (c) { return c.id !== id; }).map(function (c) { return '<a href="#/obor/' + ok + "/" + c.id + '">' + esc(c.name) + "</a>"; }).join("") + "</div>";
     app.innerHTML = html;
     document.getElementById("clsort").onchange = function (e) { state.clSort = e.target.value; viewCluster(ok, id); };
@@ -274,10 +324,10 @@
     var segs = SEGS.filter(function (s) { return s.c === cat; });
     var html = '<div class="crumbs"><a href="#/">Hledat</a> › Všechny segmenty</div><h1>Všechny segmenty</h1>' +
       '<p class="lead">' + esc(CATS[cat].hint) + ".</p>" +
-      '<div class="tabs">' + ["zamer", "udalost", "profil"].map(function (c) {
+      '<div class="toolbar"><div class="seg-tabs">' + ["zamer", "udalost", "profil"].map(function (c) {
         var n = SEGS.filter(function (s) { return s.c === c; }).length;
         return '<a class="chip' + (c === cat ? " on" : "") + '" href="#/vse/' + c + '">' + CATS[c].name + '<span class="n">' + n + "</span></a>";
-      }).join("") + "</div>" +
+      }).join("") + "</div></div>" +
       '<div class="list">' + segs.map(function (s) { return segCard(s); }).join("") + "</div>";
     app.innerHTML = html;
   }
@@ -316,6 +366,12 @@
     }
   }
 
+  document.getElementById("help").onclick = function (e) {
+    e.preventDefault();
+    ls("dk-guide", "1");
+    if (location.hash.replace(/^#/, "") === "/" || !location.hash) route(); else location.hash = "#/";
+    setTimeout(function () { var g = document.getElementById("guide"); if (g) { g.hidden = false; g.scrollIntoView({ behavior: "smooth", block: "start" }); } }, 60);
+  };
   var tmr;
   qInput.addEventListener("input", function () {
     clearTimeout(tmr);
