@@ -88,7 +88,7 @@ h2{font-size:clamp(22px,3vw,28px);font-weight:800;letter-spacing:-.01em;margin:4
 .guide-x:hover{color:var(--ink)}
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;list-style:none;margin:0;padding:0;counter-reset:st}
 .steps li{position:relative;background:var(--surface-2);border-radius:var(--radius);padding:18px 18px 18px 60px;counter-increment:st;min-width:0}
-.steps li::before{content:counter(st);position:absolute;left:18px;top:16px;width:30px;height:30px;border-radius:50%;background:var(--red);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center}
+.steps li::before{content:counter(st);position:absolute;left:18px;top:16px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:var(--ink-2);font-weight:600;font-size:14px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
 .steps b{display:block;font-size:16px;margin-bottom:4px}
 .steps p{margin:0;color:var(--ink-2);font-size:14.5px}
 .steps code{font:600 13px var(--font);background:rgba(255,255,255,.08);padding:1px 7px;border-radius:6px;color:var(--ink);white-space:nowrap}
